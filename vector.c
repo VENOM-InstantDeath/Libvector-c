@@ -133,6 +133,7 @@ void string_append_fmt(string* S, const char* fmt, ...) {
 					string_realloc(S, S->memsize-(2-str_size));
 					S->c_str[S->memsize-1] = 0;
 					puts("left");
+					ptr = strchr(S->c_str, '%');
 				}
 				string_print_raw(S);
 
@@ -164,9 +165,7 @@ void string_append_int(string* S, int n) {
 	}
 	int digits = floor(log10(n))+1;
 	string_grow(S, digits);
-	printf("digits: %d\n", digits);
 	S->size += digits;
-	string_print_raw(S);
 	for (int i=0; i<digits; i++) {
 		S->c_str[S->size-i-1] = (n%10)+'0';
 		n /= 10;
