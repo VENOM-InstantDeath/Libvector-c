@@ -7,8 +7,10 @@
 
 char* _error_messages[] = {
 	"NULL_STR: Se esperaba un c-string pero se obtuvo un puntero nulo",
-	"NULL_OBJ: Se esperaba un objeto string pero se obtuvo un puntero nulo",
-	"OUT_OF_BOUNDS: La posición solicitada está fuera de los límites del string",
+	"NULL_SOBJ: Se esperaba un objeto string pero se obtuvo un puntero nulo",
+	"NULL_OBJ: Se esperaba un objeto vector pero se obtuvo un puntero nulo",
+	"OUT_OF_BOUNDS: La posición solicitada está fuera de los límites del vector",
+	"VECTYPE_ERROR: El tipo del vector indicado no soporta esa operación",
 };
 
 void* _realloc(void* ptr, size_t size) {
@@ -45,20 +47,20 @@ string string_init(char* str) {
 	return S;
 }
 
-void string_raise(char* function, string_exception exception) {
+void vector_raise(char* function, vector_exception exception) {
 	printf("libvector: error in %s: %s\n", function, _error_messages[exception]);
 	exit(1);
 }
 
 char string_get_at(string* S, int n) {
 	if (n < 0) {return S->c_str[S->memsize+n];}
-	if (n >= S->memsize) string_raise("string_get_at", OUT_OF_BOUNDS);
+	if (n >= S->memsize) vector_raise("string_get_at", OUT_OF_BOUNDS);
 	return S->c_str[n];
 }
 
 void string_asign_at(string* S, int n, char ch) {
 	if (n < 0) {S->c_str[S->memsize+n] = ch;return;}
-	if (n >= S->memsize) string_raise("string_asign_at", OUT_OF_BOUNDS);
+	if (n >= S->memsize) vector_raise("string_asign_at", OUT_OF_BOUNDS);
 	S->c_str[n] = ch;
 }
 
@@ -79,7 +81,7 @@ int string_count(string* S, char ch) {
 }
 
 void string_append(string* S, char* str) {
-	if (!str) string_raise("string_append", NULL_STR);
+	if (!str) vector_raise("string_append", NULL_STR);
 	size_t str_size = strlen(str);
 	if (!str_size) return;
 	else {
@@ -197,3 +199,179 @@ void string_append_fmt(string* S, char* fmt, ...) {
 	string_append(S, string_get_c_str(&Fmt));
 	va_end(argv);
 }
+
+vector vector_init(vectype T) {
+	vector S; S.memsize=0;S.type=T;
+	switch (T) {
+		case VGEN:
+			S.T.gen=NULL;break;
+		case VINT:
+			S.T.num=NULL;break;
+		case VSTRLIST:
+			S.T.strls=NULL;break;
+	}
+	return S;
+}
+
+void vector_grow_int(vector* V, size_t size) {
+	V->T.num = _realloc(V->T.num, sizeof(int)*(V->memsize+size));
+	V->memsize += size;
+}
+
+void vector_grow_generic(vector* V, size_t size) {
+	V->T.gen = _realloc(V->T.num, sizeof(void*)*(V->memsize+size));
+	V->memsize += size;
+}
+
+void vector_grow_string(vector* V, size_t size) {
+	V->T.strls = _realloc(V->T.num, sizeof(char*)*(V->memsize+size));
+	V->memsize += size;
+}
+
+#define vector_grow(V, size) switch (V->type) {\
+case VINT: vector_grow_int(V,size);break;\
+case VGEN: vector_grow_generic(V,size);break;\
+case VSTRLIST: vector_grow_string(V,size);break;\
+}
+
+void vector_shrink_int(vector* V, size_t size) {
+	V->T.num = _realloc(V->T.num, sizeof(int)*(V->memsize-size));
+	V->memsize -= size;
+}
+
+void vector_shrink_generic(vector* V, size_t size) {
+	V->T.gen = _realloc(V->T.num, sizeof(int)*(V->memsize-size));
+	V->memsize -= size;
+}
+
+void vector_shrink_string(vector* V, size_t size) {
+	V->T.strls = _realloc(V->T.num, sizeof(int)*(V->memsize-size));
+	V->memsize -= size;
+}
+
+#define vector_shrink(V, size) switch (V->type) {\
+case VINT: vector_shrink_int(V,size);break;\
+case VGEN: vector_shrink_generic(V,size);break;\
+case VSTRLIST: vector_shrink_string(V,size);break;\
+}
+
+int vector_get_int_at(vector* V, int n) {
+	if (n < 0) {return V->T.num[V->memsize+n];}
+	if (n >= V->memsize) vector_raise("vector_get_int_at", OUT_OF_BOUNDS);
+	return V->T.num[n];
+}
+
+void* vector_get_generic_at(vector* V, int n) {
+	if (n < 0) {return V->T.gen[V->memsize+n];}
+	if (n >= V->memsize) vector_raise("vector_get_generic_at", OUT_OF_BOUNDS);
+	return V->T.gen[n];
+}
+
+char* vector_get_string_at(vector* V, int n) {
+	if (n < 0) {return V->T.strls[V->memsize+n];}
+	if (n >= V->memsize) vector_raise("vector_get_string_at", OUT_OF_BOUNDS);
+	return V->T.strls[n];
+}
+
+void vector_asign_int_at(vector* V, int n, int arg) {
+	if (n < 0) {V->T.num[V->memsize+n] = arg;return;}
+	if (n >= V->memsize) vector_raise("vector_asign_int_at", OUT_OF_BOUNDS);
+	V->T.num[n] = arg;
+}
+
+void vector_asign_generic_at(vector* V, int n, void* arg) {
+	if (n < 0) {V->T.gen[V->memsize+n] = arg;return;}
+	if (n >= V->memsize) vector_raise("vector_asign_generic_at", OUT_OF_BOUNDS);
+	V->T.gen[n] = arg;
+}
+
+void vector_asign_string_at(vector* V, int n, char* arg) {
+	if (n < 0) {V->T.strls[V->memsize+n] = arg;return;}
+	if (n >= V->memsize) vector_raise("vector_asign_string_at", OUT_OF_BOUNDS);
+	V->T.strls[n] = arg;
+}
+
+int vector_count_int(vector* V, int n) {
+	int c = 0;
+	for (int i=0; i<V->memsize; i++) {
+		if (vector_get_int_at(V, i) == n) c++;
+	}
+	return c;
+}
+
+int vector_count_string(vector* V, char* str) {
+	int c = 0;
+	for (int i=0; i<V->memsize; i++) {
+		if (vector_get_string_at(V, i) == str) c++;
+	}
+	return c;
+}
+
+void vector_append_int(vector* V, int arg) {
+	vector_grow_int(V, 1);
+	vector_asign_int_at(V, -1, arg);
+}
+
+void vector_append_generic(vector* V, void* arg) {
+	if (!arg) puts("libvector: warning in vector_append_generic: attempting to append NULL.");
+	vector_grow_generic(V, 1);
+	vector_asign_generic_at(V, -1, arg);
+}
+
+void vector_append_string(vector* V, char* str) {
+	if (!str) puts("libvector: warning in vector_append_generic: attempting to append NULL.");
+	vector_grow_string(V, 1);
+	vector_asign_string_at(V, -1, str);
+}
+//
+int vector_find_int(vector* V, int n) {
+	for (int i=0; i<V->memsize; i++) {
+		if (vector_get_int_at(V, i) == n) return i;
+	}
+	return -1;
+}
+
+int vector_find_string(vector* V, char* str) {
+	for (int i=0; i<V->memsize; i++) {
+		if (vector_get_string_at(V, i) == str) return i;
+	}
+	return -1;
+}
+
+int vector_rfind_int(vector* V, int n) {
+	for (int i=0; i<V->memsize; i++) {
+		if (vector_get_int_at(V, i) == n) return i;
+	}
+	return -1;
+}
+
+int vector_rfind_string(vector* V, char* str) {
+	for (int i=0; i<V->memsize; i++) {
+		if (vector_get_string_at(V, i) == str) return i;
+	}
+	return -1;
+}
+
+void vector_shift(vector* V, int start, int end, int steps) {
+	if (!steps) return;
+	for (int i=end-1; i>=start; i--) {
+		vector_asign_at(V, i+steps, vector_get_at(V, i));
+	}
+}
+
+void vector_shift_left(vector* V, int start, int end, int steps) {
+	if (!steps) return;
+	for (int i=start; i<end; i++) {
+		vector_asign_at(V, i-steps, vector_get_at(V, i));
+	}
+}
+
+void vector_remove(vector* V, int index) {
+	index = index < 0 ? V->memsize+index : index;
+	vector_shift_left(V, index+1, V->memsize, 1);
+	vector_shrink(V, 1);
+}
+
+void vector_insert_int(vector* V, int arg) {}
+void vector_insert_generic(vector* V, void* arg) {}
+void vector_insert_string(vector* V, char* arg) {}
