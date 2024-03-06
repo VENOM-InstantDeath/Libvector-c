@@ -5,6 +5,8 @@
 #include <math.h>
 #include "vector.h"
 
+#define VERSION "1.1.2"
+
 char* _error_messages[] = {
 	"NULL_STR: Se esperaba un c-string pero se obtuvo un puntero nulo",
 	"NULL_SOBJ: Se esperaba un objeto string pero se obtuvo un puntero nulo",
@@ -92,7 +94,12 @@ void string_append(string* S, char* str) {
 }
 
 void string_append_int(string* S, int num) {
-	if (num < 0) {
+	if (!num) {
+		string_grow(S, 1);
+		string_asign_at(S, -1, '0'); 
+		return;
+	}
+	else if (num < 0) {
 		string_grow(S, 1);
 		string_asign_at(S, -1, '-');
 	}
@@ -165,7 +172,7 @@ void string_append_fmt(string* S, char* fmt, ...) {
 			case 'd':
 				{
 					int num = va_arg(argv, int);
-					int digits = floor(log10(num))+1;
+					int digits = num ? floor(log10(num))+1 : 1;
 					if (num < 0) {digits++;}
 					if (digits >= 2) {
 						size_t end = Fmt.memsize;
@@ -175,6 +182,10 @@ void string_append_fmt(string* S, char* fmt, ...) {
 					else {
 						string_shift_left(&Fmt, start+2, Fmt.memsize, digits);
 						string_shrink(&Fmt, digits);
+					}
+					if (!num) {
+						string_asign_at(&Fmt, start, '0');
+						break;
 					}
 					if (num < 0) {
 						string_asign_at(&Fmt, start, '-');
@@ -198,6 +209,28 @@ void string_append_fmt(string* S, char* fmt, ...) {
 	}
 	string_append(S, string_get_c_str(&Fmt));
 	va_end(argv);
+}
+
+void string_free(string* S) {
+	free(S->c_str); S->c_str=NULL;
+	S->memsize=0;
+}
+
+vector string_split(string* S, char sep) {
+	vector V = vector_init(VSTRLIST);
+	string str = string_init(NULL);
+	for (int i=0; i<S->memsize; i++) {
+		char ch = string_get_at(S, i);
+		if (ch == sep) {
+			vector_append_string(&V, string_get_c_str(&str));
+			string_free(&str);
+			str=string_init(NULL);
+		} else {
+			string_append_char(&str, ch);
+		}
+	}
+	vector_append_string(&V, string_get_c_str(&str));string_free(&str);
+	return V;
 }
 
 vector vector_init(vectype T) {
