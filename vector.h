@@ -6,7 +6,8 @@ typedef enum {
 	NULL_SOBJ,
 	NULL_OBJ,
 	OUT_OF_BOUNDS,
-	VECTYPE_ERROR
+	VECTYPE_ERROR,
+	STR_NOT_NUM
 } vector_exception;
 typedef enum {
 	VINT,
@@ -44,6 +45,12 @@ void string_append_char(string* S, char ch);
 int string_find(string* S, char ch);
 int string_rfind(string* S, char ch);
 void string_append_fmt(string* S, char* fmt, ...);
+int string_is_int(string* S);
+int string_is_num(string* S);
+void string_to_lower(string* S);
+void string_to_upper(string* S);
+int string_to_int(string* S);
+double string_to_double(string* S);
 void string_free(string* S);
 vector string_split(string* S, char sep);
 
